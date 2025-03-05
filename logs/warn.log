@@ -1,0 +1,11 @@
+{"level":"warn","timestamp":"2025-03-05T16:10:11.314Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T16:10:44.494Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T16:17:23.262Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T16:17:37.727Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T16:47:25.620Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T17:14:05.299Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T17:14:20.170Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T17:14:32.317Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T17:32:47.333Z","message":"Total amount mismatch","calculatedTotal":1439.96,"providedTotal":1458.82,"difference":18.8599999999999}
+{"level":"warn","timestamp":"2025-03-05T19:27:48.210Z","message":"No products in extracted info, using default","saleInfo":{"customerName":"","phoneNumber":"","products":[],"totalAmount":1.27,"date":"2023-10-04T04:00:00.000Z","storeLocation":"","orderNumber":""}}
+{"level":"warn","timestamp":"2025-03-05T20:48:27.534Z","message":"No products in extracted info, using default","saleInfo":{"customerName":"","phoneNumber":"","products":[],"totalAmount":1.27,"date":"2023-10-04T04:00:00.000Z","storeLocation":"","orderNumber":""}}

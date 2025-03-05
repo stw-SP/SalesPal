@@ -1,0 +1,2366 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const pdfParse = require('pdf-parse');
+const { createWorker } = require('tesseract.js');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
+
+// Custom logger function
+const logger = {
+  info: (message, context = {}) => {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+      level: 'info',
+      timestamp,
+      message,
+      ...context
+    };
+    console.log(JSON.stringify(logEntry));
+    
+    // Write to log file if needed
+    try {
+      const logDir = path.join(__dirname, '../logs');
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      fs.appendFileSync(
+        path.join(logDir, 'app.log'), 
+        JSON.stringify(logEntry) + '\n'
+      );
+    } catch (e) {
+      console.error('Error writing to log file:', e);
+    }
+  },
+  
+  error: (message, error = null, context = {}) => {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+      level: 'error',
+      timestamp,
+      message,
+      errorMessage: error?.message,
+      stack: error?.stack,
+      ...context
+    };
+    console.error(JSON.stringify(logEntry));
+    
+    // Write to log file if needed
+    try {
+      const logDir = path.join(__dirname, '../logs');
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      fs.appendFileSync(
+        path.join(logDir, 'error.log'), 
+        JSON.stringify(logEntry) + '\n'
+      );
+    } catch (e) {
+      console.error('Error writing to log file:', e);
+    }
+  },
+  
+  debug: (message, context = {}) => {
+    if (process.env.DEBUG_MODE === 'true') {
+      const timestamp = new Date().toISOString();
+      const logEntry = {
+        level: 'debug',
+        timestamp,
+        message,
+        ...context
+      };
+      console.log(JSON.stringify(logEntry));
+      
+      // Write to log file if needed
+      try {
+        const logDir = path.join(__dirname, '../logs');
+        if (!fs.existsSync(logDir)) {
+          fs.mkdirSync(logDir, { recursive: true });
+        }
+        fs.appendFileSync(
+          path.join(logDir, 'debug.log'), 
+          JSON.stringify(logEntry) + '\n'
+        );
+      } catch (e) {
+        console.error('Error writing to log file:', e);
+      }
+    }
+  }
+};
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  
+  // Log when request starts
+  logger.info(`Request started: ${req.method} ${req.originalUrl}`, {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
+  
+  // Intercept response to log when finished
+  const originalSend = res.send;
+  res.send = function(body) {
+    const duration = Date.now() - startTime;
+    
+    // Log completion
+    logger.info(`Request completed: ${req.method} ${req.originalUrl}`, {
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`
+    });
+    
+    return originalSend.call(this, body);
+  };
+  
+  next();
+});
+
+logger.info('Server starting up');
+logger.info('Using in-memory database for demonstration');
+
+// In-memory database for demo
+const inMemoryDB = {
+  users: [
+    {
+      _id: '1',
+      name: 'Demo Employee',
+      email: 'demo@salespal.com',
+      password: '$2b$10$ksMzcZwOhjYANky6xSDsV.eH9WfJWN/FMEGTer8zGNr6Kkmh2p9zG', // hashed 'demo123'
+      role: 'employee',
+      storeLocation: 'Downtown',
+      hireDate: new Date('2021-05-15'),
+      commissionRate: 10
+    },
+    {
+      _id: '2',
+      name: 'Admin User',
+      email: 'admin@salespal.com',
+      password: '$2b$10$ksMzcZwOhjYANky6xSDsV.eH9WfJWN/FMEGTer8zGNr6Kkmh2p9zG', // hashed 'demo123'
+      role: 'admin',
+      storeLocation: 'Main Store',
+      hireDate: new Date('2020-01-01'),
+      commissionRate: 15
+    }
+  ],
+  sales: [
+    {
+      _id: '101',
+      employee: '1',
+      date: new Date('2025-02-20'),
+      customerName: 'John Smith',
+      phoneNumber: '555-123-4567',
+      products: [
+        {
+          name: 'iPhone 15',
+          quantity: 1,
+          price: 899.99,
+          plan: 'Premium',
+          accessories: ['Case', 'Screen Protector']
+        }
+      ],
+      totalAmount: 899.99,
+      commission: 89.99,
+      storeLocation: 'Downtown',
+      createdAt: new Date('2025-02-20')
+    },
+    {
+      _id: '102',
+      employee: '1',
+      date: new Date('2025-02-21'),
+      customerName: 'Sarah Johnson',
+      phoneNumber: '555-987-6543',
+      products: [
+        {
+          name: 'Samsung Galaxy S24',
+          quantity: 1,
+          price: 799.99,
+          plan: 'Standard',
+          accessories: ['Case']
+        },
+        {
+          name: 'Wireless Earbuds',
+          quantity: 1,
+          price: 99.99,
+          plan: '',
+          accessories: []
+        }
+      ],
+      totalAmount: 899.98,
+      commission: 89.99,
+      storeLocation: 'Downtown',
+      createdAt: new Date('2025-02-21')
+    }
+  ]
+};
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 
+      'application/pdf'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, and PDF are allowed.'));
+    }
+  }
+});
+
+// Improved PDF parsing function
+async function parsePdf(filePath) {
+  try {
+    logger.debug('Starting improved PDF parsing', { filePath });
+    
+    // Check if file exists first
+    if (!fs.existsSync(filePath)) {
+      logger.error('PDF file does not exist', { filePath });
+      return ''; // Return empty string instead of throwing
+    }
+    
+    // Read file with strict error handling
+    let dataBuffer;
+    try {
+      dataBuffer = fs.readFileSync(filePath);
+      if (!dataBuffer || dataBuffer.length === 0) {
+        logger.error('Empty PDF file', { filePath });
+        return ''; // Return empty string for empty files
+      }
+    } catch (readError) {
+      logger.error('Failed to read PDF file', readError, { filePath });
+      return ''; // Return empty string instead of throwing
+    }
+    
+    // Set a longer timeout to prevent premature failure on complex PDFs
+    const timeoutMs = 40000; // 40 seconds
+    let timeoutId;
+    
+    // Create a promise race between PDF parsing and timeout
+    const parsePromise = new Promise((resolve, reject) => {
+      try {
+        // Simplified PDF parsing options to improve compatibility
+        pdfParse(dataBuffer, {
+          max: 20, // Allow more pages for larger documents
+          version: 'v2.0.550' // Use a stable PDF.js version
+        })
+        .then(resolve)
+        .catch(err => {
+          // More detailed error handling for common PDF parsing errors
+          logger.error('PDF parsing inner error', { 
+            error: err.message,
+            filePath
+          });
+          
+          // Try parsing again with less options as fallback
+          return pdfParse(dataBuffer, { max: 5 })
+            .then(resolve)
+            .catch(fallbackErr => {
+              logger.error('PDF fallback parsing failed', { 
+                error: fallbackErr.message,
+                filePath
+              });
+              reject(fallbackErr);
+            });
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('PDF parsing timed out after 40 seconds'));
+      }, timeoutMs);
+    });
+    
+    // Race between parsing and timeout
+    try {
+      const data = await Promise.race([parsePromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId); // Clear timeout if parsing completes
+      
+      // Validate the parsed data has text
+      if (!data || !data.text) {
+        logger.warn('PDF parsing returned no text', { filePath });
+        return ''; // Return empty string for no text
+      }
+      
+      // Clean up the text to improve parsing
+      let extractedText = data.text || '';
+      
+      // Fix common OCR issues: remove multiple spaces, fix line breaks
+      extractedText = extractedText
+        .replace(/\s+/g, ' ')         // Replace multiple spaces with single space
+        .replace(/(\w)\s*\n\s*(\w)/g, '$1 $2') // Join words broken by line breaks
+        .replace(/\n{3,}/g, '\n\n')   // Replace excessive line breaks
+        .trim();
+      
+      // Add more space after common sections to help with parsing
+      const sectionMarkers = [
+        'CUSTOMER', 'INVOICE', 'BILL TO', 'SHIP TO', 'TOTAL',
+        'SUBTOTAL', 'TAX', 'ITEMS', 'PRODUCTS', 'ACCESSORIES'
+      ];
+      
+      sectionMarkers.forEach(marker => {
+        const regex = new RegExp(`(${marker}:?)`, 'gi');
+        extractedText = extractedText.replace(regex, '\n$1\n');
+      });
+      
+      if (extractedText.trim().length < 20) {
+        logger.warn('PDF parsing returned insufficient text', { 
+          filePath,
+          textLength: extractedText.length,
+          text: extractedText
+        });
+        return extractedText; // Still return whatever we got
+      }
+      
+      logger.debug('PDF parsing successful', { 
+        textLength: extractedText.length,
+        pages: data.numpages || 0,
+        previewText: extractedText.substring(0, 100)
+      });
+      
+      return extractedText;
+    } catch (parseError) {
+      if (timeoutId) clearTimeout(timeoutId); // Clear timeout if parsing fails
+      
+      logger.error('PDF parsing failed', parseError, { filePath });
+      
+      // Instead of throwing, return empty string to allow process to continue
+      return '';
+    }
+  } catch (error) {
+    logger.error('PDF parsing outer error', error, { filePath });
+    
+    // Return empty string instead of throwing to prevent crashes
+    return '';
+  }
+}
+
+// Improved OCR function for images with better receipt recognition
+async function performOcr(filePath) {
+  let worker = null;
+  try {
+    logger.debug('Starting improved OCR processing', { filePath });
+    
+    // Check if file exists first
+    if (!fs.existsSync(filePath)) {
+      logger.error('Image file does not exist', { filePath });
+      return ''; // Return empty string instead of throwing
+    }
+    
+    try {
+      // Create worker with optimized settings for receipt OCR
+      worker = await createWorker({
+        logger: m => logger.debug('Tesseract:', m),
+        errorHandler: e => logger.error('Tesseract error:', e)
+      });
+      
+      // Load English language data
+      await worker.loadLanguage('eng');
+      
+      // Initialize with English and set page segmentation mode to 6 (assume single uniform block of text)
+      // This works better for receipts than the default setting
+      await worker.initialize('eng');
+      
+      // Set additional parameters to improve receipt recognition
+      await worker.setParameters({
+        preserve_interword_spaces: '1',
+        tessedit_ocr_engine_mode: '1', // Use combined OCR engine
+      });
+      
+      logger.debug('OCR worker initialized with receipt-optimized settings', { filePath });
+      
+      // Set a timeout for the OCR operation
+      let ocrResult = null;
+      const OCR_TIMEOUT = 60000; // 60 seconds (longer timeout for better recognition)
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('OCR timed out after 60 seconds')), OCR_TIMEOUT);
+      });
+      
+      const recognizePromise = worker.recognize(filePath).then(result => {
+        if (!result || !result.data) {
+          throw new Error('OCR returned empty result');
+        }
+        return result.data.text || '';
+      });
+      
+      // Race the promises
+      ocrResult = await Promise.race([recognizePromise, timeoutPromise]);
+      
+      // Post-process OCR text to improve quality for parsing
+      if (ocrResult) {
+        // Clean up common OCR errors in receipts
+        ocrResult = ocrResult
+          .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+          .replace(/(\d)\s+\.\s+(\d)/g, '$1.$2') // Fix decimal points
+          .replace(/\$\s+/g, '$') // Fix dollar signs
+          .replace(/(\w)\s*\n\s*(\w)/g, '$1 $2') // Join words broken by line breaks
+          .replace(/\n{3,}/g, '\n\n') // Replace excessive line breaks
+          .trim();
+          
+        // Add more space around common receipt headers
+        const sectionMarkers = [
+          'CUSTOMER', 'INVOICE', 'RECEIPT', 'BILL TO', 'SHIP TO', 'TOTAL',
+          'SUBTOTAL', 'TAX', 'ITEMS', 'PRODUCTS', 'PHONE', 'DATE', 'PAYMENT'
+        ];
+        
+        sectionMarkers.forEach(marker => {
+          const regex = new RegExp(`(${marker}:?)`, 'gi');
+          ocrResult = ocrResult.replace(regex, '\n$1\n');
+        });
+      }
+      
+      logger.debug('OCR recognition complete', { 
+        textLength: ocrResult?.length || 0,
+        preview: ocrResult?.substring(0, 50)
+      });
+      
+      return ocrResult || '';
+    } catch (ocrError) {
+      logger.error('OCR engine error', ocrError, { filePath });
+      
+      // Try a simplified fallback with fewer options
+      try {
+        if (worker) {
+          logger.info('Attempting OCR fallback with simpler settings');
+          
+          // Reset worker parameters to default for second attempt
+          await worker.setParameters({});
+          
+          const fallbackResult = await worker.recognize(filePath);
+          if (fallbackResult && fallbackResult.data && fallbackResult.data.text) {
+            logger.info('OCR fallback successful');
+            return fallbackResult.data.text;
+          }
+        }
+      } catch (fallbackError) {
+        logger.error('OCR fallback also failed', fallbackError);
+      }
+      
+      // Instead of throwing, return empty string with warning to let the process continue
+      logger.warn('Returning empty OCR result due to error');
+      return '';
+    }
+  } catch (error) {
+    logger.error('OCR outer error', error, { filePath });
+    // Return empty string instead of throwing to prevent crashes
+    return '';
+  } finally {
+    // Always ensure worker is terminated to prevent memory leaks
+    if (worker) {
+      try {
+        await worker.terminate();
+        logger.debug('OCR worker terminated', { filePath });
+      } catch (terminateError) {
+        logger.error('Error terminating OCR worker', terminateError);
+        // Continue even if termination fails
+      }
+    }
+  }
+}
+          ocrResult = ocrResult.replace(regex, '\n$1\n');
+        });
+      }
+      
+      logger.debug('OCR recognition complete', { 
+        textLength: ocrResult?.length || 0,
+        preview: ocrResult?.substring(0, 50)
+      });
+      
+      return ocrResult || '';
+    } catch (ocrError) {
+      logger.error('OCR engine error', ocrError, { filePath });
+      
+      // Try a simplified fallback with fewer options
+      try {
+        if (worker) {
+          logger.info('Attempting OCR fallback with simpler settings');
+          
+          // Reset worker parameters to default for second attempt
+          await worker.setParameters({
+            tessedit_ocr_engine_mode: '1', // Use combined OCR engine
+          });
+          
+          const fallbackResult = await worker.recognize(filePath);
+          if (fallbackResult && fallbackResult.data && fallbackResult.data.text) {
+            logger.info('OCR fallback successful');
+            return fallbackResult.data.text;
+          }
+        }
+      } catch (fallbackError) {
+        logger.error('OCR fallback also failed', fallbackError);
+      }
+      
+      // Instead of throwing, return empty string with warning to let the process continue
+      logger.warn('Returning empty OCR result due to error');
+      return '';
+    }
+  } catch (error) {
+    logger.error('OCR outer error', error, { filePath });
+    // Return empty string instead of throwing to prevent crashes
+    return '';
+  } finally {
+    // Always ensure worker is terminated to prevent memory leaks
+    if (worker) {
+      try {
+        await worker.terminate();
+        logger.debug('OCR worker terminated', { filePath });
+      } catch (terminateError) {
+        logger.error('Error terminating OCR worker', terminateError);
+        // Continue even if termination fails
+      }
+    }
+  }
+}
+
+// Process extracted text to get sale information
+async function extractSaleInfo(text) {
+  try {
+    logger.debug('Extracting sale info from text...', { textLength: text?.length || 0 });
+    
+    // Safety check for text input
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      logger.warn('Empty or invalid text for sale info extraction');
+      return {
+        customerName: '',
+        phoneNumber: '',
+        products: [{
+          name: 'Unknown Product',
+          quantity: 1,
+          price: 0
+        }],
+        totalAmount: 0,
+        date: new Date()
+      };
+    }
+    
+    // Create a basic template to return valid data
+    const defaultSale = {
+      customerName: '',
+      phoneNumber: '',
+      products: [{
+        name: 'Unknown Product',
+        quantity: 1,
+        price: 0
+      }],
+      totalAmount: 0,
+      date: new Date()
+    };
+    
+    // Try Claude-based extraction first
+    try {
+      logger.info('Using Claude AI for receipt parsing');
+      const claudeExtractedData = await extractSaleInfoWithClaude(text);
+      
+      // Validate the extracted data
+      if (claudeExtractedData && typeof claudeExtractedData === 'object') {
+        const result = {
+          ...defaultSale,
+          ...claudeExtractedData,
+          // Ensure products is always an array
+          products: Array.isArray(claudeExtractedData.products) && claudeExtractedData.products.length > 0 
+            ? claudeExtractedData.products 
+            : defaultSale.products
+        };
+        
+        // Ensure date is valid
+        if (result.date && !(result.date instanceof Date) && isNaN(new Date(result.date).getTime())) {
+          logger.warn('Invalid date in Claude extracted data', { date: result.date });
+          result.date = new Date();
+        } else if (result.date instanceof Date) {
+          // Already a valid date, no action needed
+        } else if (typeof result.date === 'string' && !isNaN(new Date(result.date).getTime())) {
+          result.date = new Date(result.date);
+        } else {
+          logger.warn('Setting default date for Claude extracted data');
+          result.date = new Date();
+        }
+        
+        // Ensure totalAmount is a number
+        if (isNaN(parseFloat(result.totalAmount))) {
+          logger.warn('Invalid totalAmount in Claude extracted data', { totalAmount: result.totalAmount });
+          result.totalAmount = 0;
+        } else {
+          result.totalAmount = parseFloat(result.totalAmount);
+        }
+        
+        logger.debug('Claude extraction successful', { 
+          hasCustomerName: !!result.customerName,
+          productsCount: result.products.length,
+          totalAmount: result.totalAmount
+        });
+        
+        // If Claude returned meaningful data, use it
+        if (result.customerName || result.phoneNumber || result.totalAmount > 0 || 
+            (result.products.length > 0 && result.products[0].name !== 'Unknown Product')) {
+          return result;
+        }
+        
+        logger.info('Claude extraction returned insufficient data, trying regex backup');
+      }
+    } catch (claudeError) {
+      logger.error('Error in Claude extraction:', claudeError);
+      // Continue to regex fallback
+    }
+    
+    // Use regex extraction as fallback
+    try {
+      logger.info('Using regex fallback for extraction');
+      const extractedData = extractSaleInfoWithRegex(text);
+      
+      // Validate the extracted data
+      if (!extractedData || typeof extractedData !== 'object') {
+        logger.warn('Regex extraction returned invalid data', { extractedData });
+        return defaultSale;
+      }
+      
+      const result = {
+        ...defaultSale,
+        ...extractedData,
+        // Ensure products is always an array
+        products: Array.isArray(extractedData.products) && extractedData.products.length > 0 
+          ? extractedData.products 
+          : defaultSale.products
+      };
+      
+      // Ensure date is valid
+      if (result.date && !(result.date instanceof Date) && isNaN(new Date(result.date).getTime())) {
+        logger.warn('Invalid date in extracted data', { date: result.date });
+        result.date = new Date();
+      } else if (result.date instanceof Date) {
+        // Already a valid date, no action needed
+      } else if (typeof result.date === 'string' && !isNaN(new Date(result.date).getTime())) {
+        result.date = new Date(result.date);
+      } else {
+        logger.warn('Setting default date for extracted data');
+        result.date = new Date();
+      }
+      
+      // Ensure totalAmount is a number
+      if (isNaN(parseFloat(result.totalAmount))) {
+        logger.warn('Invalid totalAmount in extracted data', { totalAmount: result.totalAmount });
+        result.totalAmount = 0;
+      } else {
+        result.totalAmount = parseFloat(result.totalAmount);
+      }
+      
+      logger.debug('Regex extraction successful', { 
+        hasCustomerName: !!result.customerName,
+        productsCount: result.products.length,
+        totalAmount: result.totalAmount
+      });
+      
+      return result;
+    } catch (regexError) {
+      logger.error('Error in regex extraction:', regexError);
+      return defaultSale;
+    }
+  } catch (error) {
+    logger.error('Error in sale extraction:', error, { 
+      textPreview: text?.substring(0, 100) || 'No text'
+    });
+    // Return default template if all else fails
+    return {
+      customerName: '',
+      phoneNumber: '',
+      products: [{
+        name: 'Unknown Product',
+        quantity: 1,
+        price: 0
+      }],
+      totalAmount: 0,
+      date: new Date()
+    };
+  }
+}
+
+// Extract sale information using Claude's AI abilities
+async function extractSaleInfoWithClaude(text) {
+  const prompt = `
+You are a receipt and invoice parser for a mobile phone store. Extract the following information from this receipt/invoice text:
+1. Customer name
+2. Phone number
+3. Date of purchase/sale
+4. List of products with names, quantities, and prices
+5. Total amount
+6. Store location (if present)
+7. Sales representative name (if present)
+
+For mobile phone products, try to identify:
+- Phone model name/number
+- Plan type (if mentioned)
+- Any accessories
+
+Here is the receipt/invoice text:
+${text}
+
+Return the information in valid JSON format like this:
+{
+  "customerName": "...",
+  "phoneNumber": "...",
+  "date": "YYYY-MM-DD",
+  "products": [
+    {"name": "...", "quantity": X, "price": X.XX, "plan": "...", "accessories": ["...", "..."]},
+    ...
+  ],
+  "totalAmount": X.XX,
+  "storeLocation": "...",
+  "salesperson": "..."
+}
+
+If some information is not found in the receipt, use null or empty arrays as appropriate.
+Use your judgment to interpret unclear text. Work step by step to extract each piece of information.
+Your JSON MUST be valid and parseable.
+`;
+
+  try {
+    const response = await askClaude(prompt);
+    
+    logger.debug('Claude receipt parsing response received', {
+      responseLength: response.length,
+      preview: response.substring(0, 50)
+    });
+    
+    // Extract JSON from Claude's response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsedData = JSON.parse(jsonMatch[0]);
+        
+        // Format to match our expected structure
+        return {
+          customerName: parsedData.customerName || '',
+          phoneNumber: parsedData.phoneNumber || '',
+          date: parsedData.date ? new Date(parsedData.date) : new Date(),
+          products: Array.isArray(parsedData.products) ? parsedData.products.map(p => ({
+            name: p.name || 'Unknown Product',
+            quantity: parseInt(p.quantity) || 1,
+            price: parseFloat(p.price) || 0,
+            plan: p.plan || '',
+            accessories: Array.isArray(p.accessories) ? p.accessories : []
+          })) : [],
+          totalAmount: parseFloat(parsedData.totalAmount) || 0,
+          storeLocation: parsedData.storeLocation || '',
+          salesperson: parsedData.salesperson || ''
+        };
+      } catch (parseError) {
+        logger.error('Error parsing JSON from Claude response:', parseError, {
+          jsonMatch: jsonMatch[0].substring(0, 100)
+        });
+      }
+    }
+  } catch (err) {
+    logger.error('Error with Claude receipt parsing:', err);
+  }
+  
+  // If Claude parsing fails, fall back to regex
+  logger.info('Falling back to regex-based extraction');
+  return extractSaleInfoWithRegex(text);
+}
+
+// Improved regex-based extraction as fallback
+function extractSaleInfoWithRegex(text) {
+  // Initialize sale object with empty values
+  const sale = {
+    customerName: '',
+    phoneNumber: '',
+    products: [],
+    totalAmount: 0,
+    date: new Date(),
+    storeLocation: '',
+    salesperson: ''
+  };
+
+  // If text is very short, return early with default values
+  if (!text || text.length < 20) {
+    return sale;
+  }
+  
+  // Clean up the text for better regex matching
+  const cleanedText = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+/g, ' ')
+    .replace(/\n+/g, '\n')
+    .trim();
+    
+  // Extract customer name with expanded patterns
+  const namePatterns = [
+    /Customer:?\s*([^\n]+)/i,
+    /Name:?\s*([^\n]+)/i,
+    /Sold to:?\s*([^\n]+)/i,
+    /Bill to:?\s*([^\n]+)/i,
+    /Attention:?\s*([^\n]+)/i,
+    /Client:?\s*([^\n]+)/i,
+    /Customer Information:?\s*([^\n]+)/i,
+    /Account:?\s*([^\n\.]{2,30})/i  // Look for short to medium length name after Account:
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = cleanedText.match(pattern);
+    if (match && match[1] && match[1].trim().length > 2) {
+      sale.customerName = match[1].trim();
+      // Remove any trailing punctuation or numbers from the name
+      sale.customerName = sale.customerName.replace(/[\d,.;:]+$/g, '').trim();
+      break;
+    }
+  }
+
+  // If no customer name was found with standard patterns, try more aggressive extraction
+  if (!sale.customerName) {
+    // Look for lines that might contain names (not too long, has at least 2 words, no numbers)
+    const nameRegex = /^([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})$/gm;
+    const potentialNames = [...cleanedText.matchAll(nameRegex)];
+    
+    if (potentialNames.length > 0) {
+      // Take the first potential name
+      sale.customerName = potentialNames[0][1].trim();
+    }
+  }
+
+  // Extract phone number with expanded patterns
+  const phonePatterns = [
+    // Standard patterns with labels
+    /(?:Phone|Tel|Telephone|Contact|Mobile|Cell):?\s*((?:\+?1[-\.\s]?)?(?:\(?[0-9]{3}\)?[-\.\s]?)?[0-9]{3}[-\.\s]?[0-9]{4})/i,
+    
+    // Look for phone numbers without labels but in common formats
+    /\b((?:\+?1[-\.\s]?)?(?:\(?[0-9]{3}\)?[-\.\s]?)[0-9]{3}[-\.\s]?[0-9]{4})\b/,
+    
+    // International format
+    /\b(\+\d{1,3}[-\.\s][0-9]{3}[-\.\s][0-9]{3}[-\.\s][0-9]{4})\b/
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const match = cleanedText.match(pattern);
+    if (match && match[1]) {
+      // Clean up the phone number - remove spaces, dots, etc.
+      sale.phoneNumber = match[1].trim().replace(/[-\.\s\(\)]/g, '');
+      
+      // Format the phone number consistently if it's a US number
+      if (sale.phoneNumber.length === 10) {
+        sale.phoneNumber = `(${sale.phoneNumber.substring(0, 3)}) ${sale.phoneNumber.substring(3, 6)}-${sale.phoneNumber.substring(6)}`;
+      }
+      break;
+    }
+  }
+
+  // Extract date with expanded patterns
+  const datePatterns = [
+    // US format MM/DD/YYYY
+    /(?:Date|Invoice Date|Order Date|Sale Date|Purchase Date|Transaction Date):?\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    
+    // ISO format YYYY-MM-DD
+    /(?:Date|Invoice Date|Order Date):?\s*(\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/i,
+    
+    // Written format like "January 15, 2024"
+    /(?:Date|Invoice Date|Order Date):?\s*([A-Za-z]+ \d{1,2},? \d{4})/i,
+    
+    // Date without label but in common format
+    /\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\b/
+  ];
+  
+  let foundDate = false;
+  for (const pattern of datePatterns) {
+    const match = cleanedText.match(pattern);
+    if (match && match[1]) {
+      try {
+        const datePart = match[1].trim();
+        
+        // Try parsing using Date constructor
+        let tempDate = new Date(datePart);
+        
+        // If that fails, try manual parsing
+        if (isNaN(tempDate.getTime())) {
+          // Check if it's MM/DD/YYYY or DD/MM/YYYY format
+          const parts = datePart.split(/[\/\-\.]/);
+          if (parts.length === 3) {
+            // For US format (most likely in receipts)
+            if (parseInt(parts[0]) <= 12) { // Assuming first part is month
+              // MM/DD/YYYY format
+              tempDate = new Date(
+                parts[2].length === 2 ? `20${parts[2]}` : parts[2], // Year
+                parseInt(parts[0]) - 1, // Month (0-indexed)
+                parseInt(parts[1]) // Day
+              );
+            } else {
+              // DD/MM/YYYY format
+              tempDate = new Date(
+                parts[2].length === 2 ? `20${parts[2]}` : parts[2], // Year
+                parseInt(parts[1]) - 1, // Month (0-indexed)
+                parseInt(parts[0]) // Day
+              );
+            }
+          }
+        }
+        
+        // If we have a valid date, use it
+        if (!isNaN(tempDate.getTime())) {
+          sale.date = tempDate;
+          foundDate = true;
+          break;
+        }
+      } catch (e) {
+        logger.error('Date parsing error:', e);
+        // Continue to next pattern
+      }
+    }
+  }
+  
+  // If no date was found, check for "Today" or similar and use current date
+  if (!foundDate && /today|current|now/i.test(cleanedText)) {
+    sale.date = new Date(); // Use current date
+  }
+
+  // Extract store location if available
+  const storePatterns = [
+    /(?:Store|Location|Branch|Office):?\s*([^,\n]{3,30})/i,
+    /(?:Store ID|Location ID|Branch ID):?\s*([A-Za-z0-9\-]{2,15})/i
+  ];
+  
+  for (const pattern of storePatterns) {
+    const match = cleanedText.match(pattern);
+    if (match && match[1]) {
+      sale.storeLocation = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract salesperson if available
+  const salesPersonPatterns = [
+    /(?:Salesperson|Sales Rep|Sales Associate|Assisted By|Helped By|Associate):?\s*([^,\n]{2,30})/i,
+    /(?:Rep|Associate|Agent|Consultant):?\s*([A-Za-z\-\. ]{2,30})/i
+  ];
+  
+  for (const pattern of salesPersonPatterns) {
+    const match = cleanedText.match(pattern);
+    if (match && match[1]) {
+      sale.salesperson = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract products with enhanced patterns
+  // First look for a product table or list in the text
+  const productSection = extractProductSection(cleanedText);
+  let productText = productSection || cleanedText;
+
+  // Try multiple patterns to find products
+  const itemPatterns = [
+    // Qty x Product $Price format
+    /(\d+)\s*(?:x|×)\s*([^\n$]+?)\s*\$?(\d+(?:\.\d{1,2})?)/ig,
+    
+    // Product $Price x Qty format
+    /([^\n$]+?)\s*\$?(\d+(?:\.\d{1,2})?)\s*(?:x|×)\s*(\d+)/ig,
+    
+    // Product $Price ea x Qty format
+    /([^\n$]+?)\s*\$?(\d+(?:\.\d{1,2})?)\s*(?:ea\.?|each)\s*(?:x|×)\s*(\d+)/ig,
+    
+    // Qty @ $Price Product format
+    /(\d+)\s*@\s*\$?(\d+(?:\.\d{1,2})?)\s*([^\n$]+)/ig,
+    
+    // Basic table-like format (common in receipts)
+    /(\d+)\s+([^\n$]{3,40}?)\s+\$?(\d+(?:\.\d{1,2})?)/ig,
+    
+    // Simple Product $Price pattern - use as last resort
+    /([^\n$]{3,40}?)\s+\$?(\d+(?:\.\d{1,2})?)/ig
+  ];
+  
+  let foundProducts = false;
+  
+  for (const pattern of itemPatterns) {
+    const matches = [...productText.matchAll(pattern)];
+    if (matches.length > 0) {
+      foundProducts = true;
+      
+      matches.forEach(match => {
+        // Skip entries that contain words like total, subtotal, tax, etc.
+        const lowerMatch = match[0].toLowerCase();
+        if (lowerMatch.includes('total') || lowerMatch.includes('subtotal') || 
+            lowerMatch.includes('tax') || lowerMatch.includes('shipping') ||
+            lowerMatch.includes('discount')) {
+          return;
+        }
+        
+        let productName, quantity, price;
+        
+        // Determine which pattern matched and extract data accordingly
+        if (pattern.source.includes('(\\d+)\\s*(?:x|×)\\s*([^\\n$]+?)')) {
+          // Qty x Product $Price
+          quantity = parseInt(match[1]) || 1;
+          productName = match[2].trim();
+          price = parseFloat(match[3]) || 0;
+        } else if (pattern.source.includes('([^\\n$]+?)\\s*\\$?(\\d+(?:\\.\\d{1,2})?)\\s*(?:x|×)\\s*(\\d+)')) {
+          // Product $Price x Qty
+          productName = match[1].trim();
+          price = parseFloat(match[2]) || 0;
+          quantity = parseInt(match[3]) || 1;
+        } else if (pattern.source.includes('([^\\n$]+?)\\s*\\$?(\\d+(?:\\.\\d{1,2})?)\\s*(?:ea\\.?|each)\\s*(?:x|×)\\s*(\\d+)')) {
+          // Product $Price ea x Qty
+          productName = match[1].trim();
+          price = parseFloat(match[2]) || 0;
+          quantity = parseInt(match[3]) || 1;
+        } else if (pattern.source.includes('(\\d+)\\s*@\\s*\\$?(\\d+(?:\\.\\d{1,2})?)\\s*([^\\n$]+)')) {
+          // Qty @ $Price Product
+          quantity = parseInt(match[1]) || 1;
+          price = parseFloat(match[2]) || 0;
+          productName = match[3].trim();
+        } else if (pattern.source.includes('(\\d+)\\s+([^\\n$]{3,40}?)\\s+\\$?(\\d+(?:\\.\\d{1,2})?)')) {
+          // Table-like format
+          quantity = parseInt(match[1]) || 1;
+          productName = match[2].trim();
+          price = parseFloat(match[3]) || 0;
+        } else {
+          // Simple Product $Price pattern
+          productName = match[1].trim();
+          price = parseFloat(match[2]) || 0;
+          quantity = 1;
+        }
+        
+        // Further clean and validate product name
+        if (productName.length > 3 && price > 0) {
+          // Extract plan information if present
+          let plan = '';
+          const planMatches = productName.match(/(plan|service|subscription|package):?\s*([^\n,]+)/i);
+          if (planMatches && planMatches[2]) {
+            plan = planMatches[2].trim();
+            // Remove the plan info from the product name to avoid duplication
+            productName = productName.replace(/(plan|service|subscription|package):?\s*([^\n,]+)/i, '').trim();
+          }
+          
+          // Extract accessories if present
+          let accessories = [];
+          const accessoryMatches = productName.match(/(accessory|accessories|with|includes):?\s*([^\n]+)/i);
+          if (accessoryMatches && accessoryMatches[2]) {
+            // Split accessories by commas or 'and'
+            accessories = accessoryMatches[2].split(/,|\sand\s/).map(a => a.trim()).filter(a => a.length > 0);
+            // Remove the accessories info from the product name
+            productName = productName.replace(/(accessory|accessories|with|includes):?\s*([^\n]+)/i, '').trim();
+          }
+          
+          // Add the product to our list
+          sale.products.push({
+            name: productName,
+            quantity: quantity,
+            price: price,
+            plan: plan,
+            accessories: accessories
+          });
+        }
+      });
+      
+      // If we found products with a specific pattern (other than the catch-all pattern),
+      // break the loop to avoid duplicate products
+      if (foundProducts && !pattern.source.includes('([^\\n$]{3,40}?)\\s+\\$?(\\d+(?:\\.\\d{1,2})?)')) {
+        break;
+      }
+    }
+  }
+
+  // Extract total amount with expanded patterns
+  const totalPatterns = [
+    /Total:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Total Amount:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Amount Due:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Grand Total:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Sum:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Balance:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Payment:?\s*\$?(\d+(?:\.\d{1,2})?)/i,
+    /Due:?\s*\$?(\d+(?:\.\d{1,2})?)/i
+  ];
+  
+  for (const pattern of totalPatterns) {
+    const match = cleanedText.match(pattern);
+    if (match && match[1]) {
+      const potentialTotal = parseFloat(match[1]);
+      // Only accept totals that make sense (positive values)
+      if (potentialTotal > 0) {
+        sale.totalAmount = potentialTotal;
+        break;
+      }
+    }
+  }
+  
+  // If no explicit total was found, try to find the largest dollar amount in the text
+  // This is often the total in simple receipts
+  if (sale.totalAmount === 0) {
+    const allAmounts = [...cleanedText.matchAll(/\$?(\d+(?:\.\d{1,2})?)/g)]
+      .map(m => parseFloat(m[1]))
+      .filter(amount => !isNaN(amount) && amount > 0);
+    
+    if (allAmounts.length > 0) {
+      // Sort amounts in descending order
+      allAmounts.sort((a, b) => b - a);
+      // The largest amount is likely the total
+      sale.totalAmount = allAmounts[0];
+    }
+  }
+  
+  // If still no total found and we have products, calculate total
+  if (sale.totalAmount === 0 && sale.products.length > 0) {
+    sale.totalAmount = sale.products.reduce(
+      (sum, product) => sum + (product.price * product.quantity), 0
+    );
+  }
+
+  return sale;
+}
+
+// Helper function to extract the product section from a receipt
+function extractProductSection(text) {
+  // Look for common headers that indicate the start of a product section
+  const sectionStartMarkers = [
+    'items purchased', 'products', 'description', 'item', 'qty', 'price', 
+    'amount', 'product details', 'purchase', 'order', 'detail'
+  ];
+  
+  // Look for common markers that indicate the end of a product section
+  const sectionEndMarkers = [
+    'subtotal', 'tax', 'total', 'payment', 'thank you', 'return policy',
+    'balance', 'amount due', 'paid'
+  ];
+  
+  // Convert markers to regex patterns
+  const startPatterns = sectionStartMarkers.map(marker => 
+    new RegExp(`\\b${marker}\\b`, 'i')
+  );
+  
+  const endPatterns = sectionEndMarkers.map(marker => 
+    new RegExp(`\\b${marker}\\b`, 'i')
+  );
+  
+  // Split text into lines
+  const lines = text.split('\n');
+  let startLine = -1;
+  let endLine = -1;
+  
+  // Find start of product section
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].toLowerCase();
+    if (startPatterns.some(pattern => pattern.test(line))) {
+      startLine = i;
+      break;
+    }
+  }
+  
+  // Find end of product section
+  if (startLine !== -1) {
+    for (let i = startLine + 1; i < lines.length; i++) {
+      const line = lines[i].toLowerCase();
+      if (endPatterns.some(pattern => pattern.test(line))) {
+        endLine = i;
+        break;
+      }
+    }
+  }
+  
+  // If we found both start and end, extract that section
+  if (startLine !== -1 && endLine !== -1 && endLine > startLine) {
+    return lines.slice(startLine, endLine).join('\n');
+  }
+  
+  // If we only found a start, take a reasonable number of lines after it
+  if (startLine !== -1) {
+    const sectionEnd = Math.min(startLine + 15, lines.length);
+    return lines.slice(startLine, sectionEnd).join('\n');
+  }
+  
+  // If we couldn't identify a specific section, return null
+  return null;
+}
+
+// Routes
+// Upload sale receipt or invoice
+app.post('/api/sales/upload', (req, res) => {
+  let filePath = null;
+  
+  // Use a wrapper to catch synchronous errors in multer middleware
+  upload.single('file')(req, res, async (uploadError) => {
+    try {
+      // First handle any multer upload errors
+      if (uploadError) {
+        logger.error('Multer upload error', uploadError);
+        return res.status(400).json({ 
+          message: 'Error uploading file: ' + uploadError.message 
+        });
+      }
+      
+      logger.debug('Starting file upload processing');
+      
+      // Validate request has a file
+      if (!req.file) {
+        logger.error('No file uploaded in request');
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      // Validate file size (limit to 15MB for demo)
+      const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+      if (req.file.size > MAX_FILE_SIZE) {
+        logger.error('File too large', { 
+          size: req.file.size, 
+          maxSize: MAX_FILE_SIZE 
+        });
+        
+        // Clean up the file
+        try {
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (cleanupError) {
+          logger.error('Error cleaning up oversized file', cleanupError);
+        }
+        
+        return res.status(400).json({ 
+          message: 'File too large. Maximum size is 15MB' 
+        });
+      }
+
+      // Additional file validation
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'].includes(req.file.mimetype)) {
+        logger.error('Invalid file type', { mimetype: req.file.mimetype });
+        
+        // Clean up the file
+        try {
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+        } catch (cleanupError) {
+          logger.error('Error cleaning up invalid file', cleanupError);
+        }
+        
+        return res.status(400).json({
+          message: 'Invalid file type. Only JPEG, PNG, and PDF are allowed.'
+        });
+      }
+
+      logger.info('File received for processing', {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        savedPath: req.file.path
+      });
+      
+      filePath = req.file.path;
+      let extractedText = '';
+      
+      // Make sure the file exists on disk
+      if (!fs.existsSync(filePath)) {
+        logger.error('File does not exist after upload', { filePath });
+        return res.status(500).json({
+          message: 'File upload failed. The file was not saved correctly.'
+        });
+      }
+
+      // Store example files in a special folder
+      if (req.file.originalname.toLowerCase().includes('example') || 
+          req.file.originalname.toLowerCase().includes('sample')) {
+        try {
+          const exampleDir = path.join(__dirname, '../uploads/Example');
+          if (!fs.existsSync(exampleDir)) {
+            fs.mkdirSync(exampleDir, { recursive: true });
+          }
+          
+          const destPath = path.join(exampleDir, req.file.originalname);
+          fs.copyFileSync(filePath, destPath);
+          logger.info('Saved example file', { destPath });
+        } catch (copyError) {
+          logger.error('Failed to save example file', copyError);
+          // Continue processing even if example saving fails
+        }
+      }
+
+      // Process file based on type
+      try {
+        if (req.file.mimetype === 'application/pdf') {
+          logger.debug('Processing PDF file with improved parser', { filePath });
+          try {
+            extractedText = await parsePdf(filePath);
+            // Double check that we got something back
+            if (extractedText === null || extractedText === undefined) {
+              extractedText = '';
+              logger.warn('PDF parser returned null/undefined', { filePath });
+            }
+          } catch (pdfError) {
+            logger.error('Failed to parse PDF', pdfError, { filePath });
+            extractedText = '';
+          }
+          
+          logger.debug('PDF processing complete', { 
+            textLength: extractedText?.length || 0,
+            previewText: extractedText?.substring(0, 100) + '...' || 'No text extracted'
+          });
+        } else {
+          // Assume it's an image
+          logger.debug('Processing image with improved OCR', { filePath, mimetype: req.file.mimetype });
+          try {
+            extractedText = await performOcr(filePath);
+            // Double check that we got something back
+            if (extractedText === null || extractedText === undefined) {
+              extractedText = '';
+              logger.warn('OCR returned null/undefined', { filePath });
+            }
+          } catch (ocrError) {
+            logger.error('Failed to perform OCR', ocrError, { filePath });
+            extractedText = '';
+          }
+          
+          logger.debug('OCR processing complete', { 
+            textLength: extractedText?.length || 0,
+            previewText: extractedText?.substring(0, 100) + '...' || 'No text extracted'
+          });
+        }
+      } catch (processingError) {
+        logger.error('Error in file processing block', processingError, { filePath });
+        
+        // Don't return error, continue with empty text
+        extractedText = '';
+      }
+      
+      // Ensure extractedText is a string
+      if (typeof extractedText !== 'string') {
+        logger.warn('extractedText is not a string, converting', { 
+          type: typeof extractedText, 
+          value: extractedText 
+        });
+        extractedText = String(extractedText || '');
+      }
+      
+      // Check if we have at least some meaningful text
+      if (extractedText.trim().length < 10) {
+        logger.warn('Extracted text too short, might need to retry with different settings', {
+          textLength: extractedText.trim().length
+        });
+      }
+      
+      // Create a minimal sale information structure as fallback
+      const defaultSaleInfo = {
+        customerName: '',
+        phoneNumber: '',
+        products: [{ name: 'Unknown Product', quantity: 1, price: 0 }],
+        totalAmount: 0,
+        date: new Date(),
+        receiptImage: req.file.path,
+        storeLocation: '',
+        salesperson: ''
+      };
+      
+      // First try extracting with Claude (most accurate)
+      logger.debug('Starting sale information extraction using Claude');
+      let saleInfo = { ...defaultSaleInfo };
+      
+      if (extractedText && extractedText.trim().length > 0) {
+        try {
+          // Try to extract sale info with Claude
+          const claudeExtractedInfo = await extractSaleInfoWithClaude(extractedText);
+          
+          if (claudeExtractedInfo && typeof claudeExtractedInfo === 'object') {
+            saleInfo = claudeExtractedInfo;
+            logger.info('Successfully extracted sale info with Claude');
+          } else {
+            logger.warn('Claude extraction failed, falling back to regex', { claudeExtractedInfo });
+            
+            // Fall back to regex extraction
+            const regexExtractedInfo = extractSaleInfoWithRegex(extractedText);
+            if (regexExtractedInfo && typeof regexExtractedInfo === 'object') {
+              saleInfo = regexExtractedInfo;
+              logger.info('Successfully extracted sale info with regex fallback');
+            } else {
+              logger.warn('Regex extraction also failed, using defaults', { regexExtractedInfo });
+            }
+          }
+            
+          // Ensure products array exists
+          if (!Array.isArray(saleInfo.products) || saleInfo.products.length === 0) {
+            logger.warn('No products in extracted info, using default', { saleInfo });
+            saleInfo.products = [{ name: 'Unknown Product', quantity: 1, price: 0 }];
+          }
+          
+          // Ensure date is valid
+          if (!saleInfo.date || isNaN(new Date(saleInfo.date).getTime())) {
+            logger.warn('Invalid date in extracted info, using default', { 
+              date: saleInfo.date 
+            });
+            saleInfo.date = new Date();
+          }
+        } catch (extractionError) {
+          logger.error('Error in sale info extraction', extractionError, { 
+            textLength: extractedText.length 
+          });
+          // Continue with default sale info
+        }
+      } else {
+        logger.info('No text to extract sale info from, using defaults');
+      }
+      
+      // Store original file reference
+      saleInfo.receiptImage = req.file.path;
+      
+      // Add confidence levels for parsed data
+      const confidence = {
+        overall: saleInfo.customerName && saleInfo.products.length > 0 && saleInfo.totalAmount > 0 ? 'high' : 'medium',
+        customerName: saleInfo.customerName ? 'high' : 'low',
+        phoneNumber: saleInfo.phoneNumber ? 'high' : 'low',
+        products: Array.isArray(saleInfo.products) && saleInfo.products.length > 0 && 
+                  saleInfo.products[0].name !== 'Unknown Product' ? 'high' : 'low',
+        totalAmount: saleInfo.totalAmount > 0 ? 'high' : 'low',
+        date: saleInfo.date && !isNaN(new Date(saleInfo.date).getTime()) ? 'high' : 'low',
+        storeLocation: saleInfo.storeLocation ? 'high' : 'low',
+        salesperson: saleInfo.salesperson ? 'high' : 'low'
+      };
+      
+      logger.info('File processing complete', {
+        filename: req.file.originalname,
+        confidence,
+        hasCustomerName: !!saleInfo.customerName,
+        productsFound: saleInfo.products?.length || 0
+      });
+      
+      // Create a sanitized version of saleInfo with proper defaults
+      const sanitizedSaleInfo = {
+        customerName: typeof saleInfo.customerName === 'string' ? saleInfo.customerName : '',
+        phoneNumber: typeof saleInfo.phoneNumber === 'string' ? saleInfo.phoneNumber : '',
+        products: Array.isArray(saleInfo.products) ? saleInfo.products.map(p => ({
+          name: typeof p?.name === 'string' ? p.name : 'Unknown Product',
+          quantity: parseInt(p?.quantity) || 1,
+          price: parseFloat(p?.price) || 0,
+          plan: typeof p?.plan === 'string' ? p.plan : '',
+          accessories: Array.isArray(p?.accessories) ? p.accessories : []
+        })) : [{ name: 'Unknown Product', quantity: 1, price: 0, plan: '', accessories: [] }],
+        totalAmount: parseFloat(saleInfo.totalAmount) || 0,
+        date: saleInfo.date && !isNaN(new Date(saleInfo.date).getTime()) ? 
+          new Date(saleInfo.date) : new Date(),
+        receiptImage: saleInfo.receiptImage,
+        storeLocation: typeof saleInfo.storeLocation === 'string' ? saleInfo.storeLocation : '',
+        salesperson: typeof saleInfo.salesperson === 'string' ? saleInfo.salesperson : ''
+      };
+      
+      // Send successful response
+      return res.json({
+        message: 'File processed successfully',
+        extractedText,
+        saleInfo: sanitizedSaleInfo,
+        originalData: { ...sanitizedSaleInfo }, // Make a clean copy of the sanitized data
+        confidence,
+        filePath: req.file.path
+      });
+    } catch (error) {
+      // Log the comprehensive error
+      logger.error('Unhandled error in file upload handler', error, {
+        filename: req.file?.originalname,
+        mimetype: req.file?.mimetype,
+        path: filePath,
+        stack: error.stack
+      });
+      
+      // Send a safe error response
+      return res.status(500).json({ 
+        message: 'Server error processing file. Please try again with a different file.',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    } finally {
+      // In this implementation, we keep the uploaded files for potential future reference
+      // We don't clean them up on error as we want to keep them for debugging
+      if (error && filePath && fs.existsSync(filePath)) {
+        try {
+          // Instead of deleting, we'll move to an error folder for investigation
+          const errorDir = path.join(__dirname, '../uploads/errors');
+          if (!fs.existsSync(errorDir)) {
+            fs.mkdirSync(errorDir, { recursive: true });
+          }
+          
+          const errorPath = path.join(errorDir, `error_${Date.now()}_${path.basename(filePath)}`);
+          fs.renameSync(filePath, errorPath);
+          logger.debug('Moved error file for debugging', { 
+            originalPath: filePath, 
+            errorPath 
+          });
+        } catch (moveError) {
+          logger.error('Error moving error file', moveError, { filePath });
+        }
+      }
+    }
+  });
+});
+
+// Manual sale entry
+app.post('/api/sales', async (req, res) => {
+  try {
+    const saleData = req.body;
+    console.log('Sale data received:', saleData);
+    
+    // Check if this is an invoice/receipt upload with modifications
+    let approvalStatus = 'approved'; // Default status
+    
+    if (saleData.originalData) {
+      try {
+        // Ensure we have valid data for comparison
+        const original = saleData.originalData || {};
+        const modified = {
+          customerName: saleData.customerName || '',
+          phoneNumber: saleData.phoneNumber || '',
+          products: Array.isArray(saleData.products) ? saleData.products : [],
+          totalAmount: parseFloat(saleData.totalAmount) || 0,
+          date: saleData.date || new Date()
+        };
+        
+        console.log('Comparing original vs modified data');
+        
+        // Check if any fields were modified with proper type handling
+        const wasModified = 
+          (original.customerName || '') !== (modified.customerName || '') ||
+          (original.phoneNumber || '') !== (modified.phoneNumber || '') ||
+          (parseFloat(original.totalAmount) || 0) !== (parseFloat(modified.totalAmount) || 0);
+        
+        // Date comparison with error handling
+        let dateModified = false;
+        try {
+          if (original.date && modified.date) {
+            const origDate = new Date(original.date);
+            const modDate = new Date(modified.date);
+            
+            if (!isNaN(origDate.getTime()) && !isNaN(modDate.getTime())) {
+              dateModified = origDate.toDateString() !== modDate.toDateString();
+            }
+          }
+        } catch (e) {
+          console.error('Date comparison error:', e);
+        }
+        
+        // Check if products were modified with proper error handling
+        let productsModified = false;
+        
+        // Ensure products are arrays
+        const origProducts = Array.isArray(original.products) ? original.products : [];
+        const modProducts = Array.isArray(modified.products) ? modified.products : [];
+        
+        if (origProducts.length !== modProducts.length) {
+          productsModified = true;
+        } else {
+          for (let i = 0; i < origProducts.length; i++) {
+            const origProd = origProducts[i] || {};
+            const modProd = modProducts[i] || {};
+            
+            if (
+              (origProd.name || '') !== (modProd.name || '') ||
+              (parseFloat(origProd.quantity) || 0) !== (parseFloat(modProd.quantity) || 0) ||
+              (parseFloat(origProd.price) || 0) !== (parseFloat(modProd.price) || 0)
+            ) {
+              productsModified = true;
+              break;
+            }
+          }
+        }
+        
+        // Set approval status if modified
+        if (wasModified || dateModified || productsModified) {
+          approvalStatus = 'pending';
+          console.log('Sale marked as pending approval due to modifications');
+        }
+      } catch (err) {
+        console.error('Error during comparison:', err);
+        // If there's an error in comparison, default to approved
+        approvalStatus = 'approved';
+      }
+    }
+    
+    const userId = req.user?._id || '1'; // Default to demo employee if auth fails
+    
+    const newSale = {
+      _id: Date.now().toString(),
+      ...saleData,
+      approvalStatus, // Add approval status
+      createdAt: new Date(),
+      modifiedBy: saleData.originalData ? userId : null, // Who modified the data
+      modifiedAt: saleData.originalData ? new Date() : null, // When it was modified
+      approvedBy: null, // Who approved the modified data (if applicable)
+      approvedAt: null // When it was approved (if applicable)
+    };
+    
+    // Remove originalData from the main object to avoid duplication
+    if (newSale.originalData) {
+      delete newSale.originalData;
+    }
+    
+    inMemoryDB.sales.push(newSale);
+    res.status(201).json(newSale);
+  } catch (error) {
+    console.error('Error creating sale:', error);
+    res.status(500).json({ message: 'Error creating sale', error: error.message });
+  }
+});
+
+// Get all sales
+app.get('/api/sales', async (req, res) => {
+  try {
+    const sales = inMemoryDB.sales.map(sale => {
+      const employee = inMemoryDB.users.find(user => user._id === sale.employee);
+      return {
+        ...sale,
+        employee: { name: employee?.name, email: employee?.email }
+      };
+    });
+    res.json(sales);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching sales', error: error.message });
+  }
+});
+
+// Get sales by employee
+app.get('/api/sales/employee/:employeeId', async (req, res) => {
+  try {
+    const sales = inMemoryDB.sales.filter(sale => sale.employee === req.params.employeeId);
+    res.json(sales);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching employee sales', error: error.message });
+  }
+});
+
+// Get pending sales requiring approval
+app.get('/api/sales/pending', async (req, res) => {
+  try {
+    // Only admins can view pending sales
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized. Admin access required.' });
+    }
+    
+    const pendingSales = inMemoryDB.sales
+      .filter(sale => sale.approvalStatus === 'pending')
+      .map(sale => {
+        const employee = inMemoryDB.users.find(user => user._id === sale.employee);
+        return {
+          ...sale,
+          employee: { name: employee?.name, email: employee?.email }
+        };
+      });
+    
+    res.json(pendingSales);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching pending sales', error: error.message });
+  }
+});
+
+// Approve or reject a pending sale
+app.patch('/api/sales/:id/approval', async (req, res) => {
+  try {
+    // Only admins can approve sales
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized. Admin access required.' });
+    }
+    
+    const { action, notes } = req.body;
+    
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ message: 'Invalid action. Must be "approve" or "reject".' });
+    }
+    
+    const saleIndex = inMemoryDB.sales.findIndex(sale => sale._id === req.params.id);
+    
+    if (saleIndex === -1) {
+      return res.status(404).json({ message: 'Sale not found' });
+    }
+    
+    const sale = inMemoryDB.sales[saleIndex];
+    
+    if (sale.approvalStatus !== 'pending') {
+      return res.status(400).json({ message: 'This sale is not pending approval' });
+    }
+    
+    // Update the sale status
+    inMemoryDB.sales[saleIndex] = {
+      ...sale,
+      approvalStatus: action === 'approve' ? 'approved' : 'rejected',
+      approvalNotes: notes || '',
+      approvedBy: req.user._id,
+      approvedAt: new Date()
+    };
+    
+    res.json({
+      message: `Sale ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+      sale: inMemoryDB.sales[saleIndex]
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating sale approval', error: error.message });
+  }
+});
+
+// Calculate commission
+app.get('/api/commission/:employeeId', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let filteredSales = inMemoryDB.sales.filter(sale => sale.employee === req.params.employeeId);
+    
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      filteredSales = filteredSales.filter(sale => {
+        const saleDate = new Date(sale.date);
+        return saleDate >= start && saleDate <= end;
+      });
+    }
+    
+    const totalCommission = filteredSales.reduce((sum, sale) => sum + sale.commission, 0);
+    
+    res.json({
+      totalSales: filteredSales.length,
+      totalAmount: filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0),
+      totalCommission
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error calculating commission', error: error.message });
+  }
+});
+
+// Authentication middleware
+const auth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = inMemoryDB.users.find(user => user._id === decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid authentication' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Authentication failed', error: error.message });
+  }
+};
+
+// Auth routes
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, storeLocation, commissionRate } = req.body;
+
+    // Check if user already exists
+    const existingUser = inMemoryDB.users.find(user => user.email === email);
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists with this email' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user
+    const newUser = {
+      _id: Date.now().toString(),
+      name,
+      email,
+      password: hashedPassword,
+      role: 'employee',
+      storeLocation,
+      commissionRate: parseFloat(commissionRate),
+      hireDate: new Date()
+    };
+
+    inMemoryDB.users.push(newUser);
+
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Error registering user', error: error.message });
+  }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const user = inMemoryDB.users.find(user => user.email === email);
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Remove password from response
+    const userResponse = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      storeLocation: user.storeLocation,
+      commissionRate: user.commissionRate
+    };
+
+    res.json({ token, user: userResponse });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Login failed', error: error.message });
+  }
+});
+
+// Get current user
+app.get('/api/users/me', auth, async (req, res) => {
+  try {
+    // Get user by id from auth middleware
+    const userResponse = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      storeLocation: req.user.storeLocation,
+      commissionRate: req.user.commissionRate
+    };
+
+    res.json(userResponse);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Error fetching user data', error: error.message });
+  }
+});
+
+// Add auth middleware to protected routes
+app.use('/api/sales', auth);
+app.use('/api/commission', auth);
+
+// Helper function to format Claude responses to be shorter and more focused
+function formatClaudeResponse(text) {
+  // Remove any asterisks for cleaner, more conversational text
+  text = text.replace(/\*/g, '');
+  
+  // Add a conversational opener if needed
+  if (!text.match(/^(hi|hey|hello|greetings|howdy)/i)) {
+    const greetings = [
+      "Hey! ",
+      "So, ",
+      "You know, ",
+      "I think ",
+      "Well, "
+    ];
+    text = greetings[Math.floor(Math.random() * greetings.length)] + text;
+  }
+  
+  // Convert any markdown elements to plain text
+  text = text.replace(/\n- /g, "\n");
+  text = text.replace(/\n\d+\.\s+/g, "\n");
+  text = text.replace(/#+\s+/g, "");
+  
+  // IMPORTANT: Limit response length by taking just the first paragraph or two
+  const paragraphs = text.split(/\n\n+/);
+  
+  // Keep only 1-2 paragraphs for brevity
+  let shortened = paragraphs.length > 0 ? paragraphs[0] : text;
+  
+  // If first paragraph is very short, include second paragraph too
+  if (paragraphs.length > 1 && shortened.length < 100) {
+    shortened = paragraphs[0] + "\n\n" + paragraphs[1];
+  }
+  
+  // Shorten further if still too long by cutting at a sentence boundary
+  if (shortened.length > 250) {
+    const sentences = shortened.match(/[^.!?]+[.!?]+/g) || [shortened];
+    shortened = sentences.slice(0, 2).join(' ');
+  }
+  
+  // Check if we need a natural follow-up
+  if (!shortened.match(/\?$/m) && !shortened.match(/(\?|what do you think|how about).*?$/is)) {
+    // Instead of adding a fixed question that might sound condescending,
+    // look for natural ways to continue the conversation based on content
+    
+    // Only sometimes add a follow-up to keep it natural
+    if (Math.random() > 0.3) {
+      // See if we can extract context for a more natural question
+      if (shortened.includes("customer") || shortened.includes("buyer")) {
+        shortened += " What types of customers do you typically work with?";
+      } else if (shortened.includes("sales")) {
+        shortened += " How have your sales been going lately?";
+      } else if (shortened.includes("phone") || shortened.includes("device")) {
+        shortened += " Which phones seem to be moving fastest for you?";
+      } else if (shortened.includes("manager") || shortened.includes("team")) {
+        shortened += " How's your team structured at your store?";
+      } else {
+        // If no context, occasionally add a simple, non-condescending transition
+        const transitions = [
+          " Tell me more about what you're dealing with.",
+          " What's been your experience with that?",
+          " I'm curious about your approach there.",
+          " What are your thoughts on that?",
+          " How's that working out for you so far?"
+        ];
+        shortened += transitions[Math.floor(Math.random() * transitions.length)];
+      }
+    }
+  }
+  
+  return shortened;
+}
+
+// Claude API integration
+async function askClaude(prompt, conversationId = null) {
+  try {
+    // Handle both string prompts and array of messages
+    const isConversation = Array.isArray(prompt);
+    
+    logger.info('Sending request to Claude API', { 
+      promptType: isConversation ? 'conversation' : 'single message',
+      promptLength: isConversation ? prompt.length : prompt.length,
+      conversationId
+    });
+    
+    // Format the messages for API call
+    const messages = isConversation 
+      ? prompt  // Already in correct format
+      : [{ role: "user", content: prompt }];  // Single message
+    
+    // System prompt to set context for retail sales assistant
+    const systemPrompt = `You are SalesPal, a friendly sales coach for a wireless retail store. Your responses simulate a real face-to-face conversation with brief, focused answers.
+
+EXTREMELY IMPORTANT: Keep all responses very short, like one or two sentences. Answer just one part of a question at a time, as if you're having a back-and-forth conversation where you pause frequently to let the employee respond.
+
+Your personality:
+- You're an experienced sales mentor who's worked in wireless retail for years
+- Speak casually and naturally, like you're chatting with a colleague on the sales floor
+- Be encouraging but direct - get right to the point 
+- Focus on one practical tip at a time rather than comprehensive answers
+
+Response style:
+- Keep responses extremely brief (1-2 sentences, MAXIMUM 2-3 short paragraphs)
+- No lists, no bullet points, no comprehensive explanations - just focused advice
+- Don't force questions at the end of every response - it sounds scripted
+- Never use condescending phrases like "does that make sense?" or "you know what I mean?"
+- Talk like an equal colleague sharing experiences, not like a teacher testing a student
+- Keep the tone friendly but professional without sounding overly enthusiastic or fake
+
+Example of good length: "I'd focus on asking better questions about how they use their current phone. Get them talking about their frustrations first before jumping to solutions. What specific objections are you hearing most often?"
+
+Your primary goal is to simulate a real human coaching conversation with brief, focused exchanges rather than comprehensive answers.`;
+    
+    // Real implementation using Anthropic API
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: "claude-3-7-sonnet-20250219", // Using Claude 3.7
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: messages
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01' // Can be updated to newer versions as they're released
+        }
+      }
+    );
+    
+    logger.info('Claude API response received', { 
+      responseLength: response.data.content[0].text.length,
+      conversationId
+    });
+    
+    // Process the response to ensure good formatting
+    const rawResponse = response.data.content[0].text;
+    
+    // Apply formatting enhancements
+    const formattedResponse = formatClaudeResponse(rawResponse);
+    
+    return formattedResponse;
+  } catch (error) {
+    logger.error('Claude API error', error, { 
+      promptType: Array.isArray(prompt) ? 'conversation' : 'single message',
+      conversationId 
+    });
+    return "I'm sorry, but I'm having trouble connecting to the assistant service right now. Please try again in a moment or contact support if the problem persists.";
+  }
+}
+
+// In-memory conversations storage
+const conversations = {
+  // Format:
+  // "<conversation_id>": {
+  //   id: "<conversation_id>",
+  //   userId: "<user_id>",
+  //   messages: [
+  //     { role: "user", content: "...", timestamp: "..." },
+  //     { role: "assistant", content: "...", timestamp: "..." }
+  //   ],
+  //   createdAt: "...",
+  //   updatedAt: "..."
+  // }
+};
+
+// Helper function to create a new conversation
+function createConversation(userId) {
+  const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const conversation = {
+    id: conversationId,
+    userId,
+    messages: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
+  conversations[conversationId] = conversation;
+  logger.debug('Created new conversation', { conversationId, userId });
+  return conversation;
+}
+
+// Common customer personas to help with sales scenarios
+const customerPersonas = [
+  {
+    type: "budget_conscious",
+    description: "Looking for the most affordable options, very price sensitive, often comparing deals",
+    needs: "Value plans, budget phones, family discounts"
+  },
+  {
+    type: "tech_enthusiast",
+    description: "Wants the latest technology, willing to pay premium prices, interested in features",
+    needs: "Flagship phones, premium plans with highest data, early upgrades"
+  },
+  {
+    type: "business_user",
+    description: "Needs reliability for work, values customer service, concerned with coverage",
+    needs: "Reliable devices, unlimited plans, international options, hotspot"
+  },
+  {
+    type: "senior",
+    description: "May be less tech-savvy, values simplicity and reliability, calls more than data",
+    needs: "Simple interfaces, basic plans, in-person support"
+  },
+  {
+    type: "family_manager",
+    description: "Making decisions for family, concerned with controls and costs across multiple lines",
+    needs: "Family plans, parental controls, multi-line discounts"
+  }
+];
+
+// API endpoint to interact with Claude
+app.post('/api/assistant', async (req, res) => {
+  try {
+    const { prompt, conversationId, customerType, isAnalysis } = req.body;
+    const userId = req.user?._id || 'anonymous';
+    
+    if (!prompt) {
+      logger.error('Missing prompt in assistant request');
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+    
+    logger.debug('Assistant request received', { 
+      promptLength: prompt.length,
+      conversationId,
+      customerType,
+      isAnalysis,
+      userId
+    });
+    
+    // For sales analysis requests, use a special system prompt
+    if (isAnalysis) {
+      logger.info('Processing sales analysis request');
+      
+      // Use a specialized system prompt for analysis
+      const analysisSystemPrompt = `You are SalesPal's Sales Analysis expert. Analyze the sales data provided and give specific, actionable advice to help the employee improve their sales performance. Format your response in a friendly, helpful way with:
+      
+      1. A brief summary of their current performance
+      2. 3-5 specific strengths you've identified from the data
+      3. 3-5 specific areas for improvement
+      4. Clear, concrete action items the employee can take immediately
+      
+      Use a supportive, encouraging tone. Make your feedback specific and data-driven. Use markdown formatting with headers, bullets, and bold text to make your analysis easy to read.`;
+      
+      // Call Claude directly with analysis system prompt
+      const response = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: "claude-3-7-sonnet-20250219",
+          max_tokens: 1500,
+          system: analysisSystemPrompt,
+          messages: [{ role: "user", content: prompt }]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01'
+          }
+        }
+      );
+      
+      // Format the response
+      const analysisResponse = formatClaudeResponse(response.data.content[0].text);
+      
+      return res.json({ 
+        response: analysisResponse
+      });
+    }
+    
+    // Standard chat conversation flow
+    // Get or create conversation
+    let conversation;
+    if (conversationId && conversations[conversationId]) {
+      conversation = conversations[conversationId];
+    } else {
+      conversation = createConversation(userId);
+    }
+    
+    // Add user message to conversation
+    conversation.messages.push({
+      role: 'user',
+      content: prompt,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Format messages for Claude API - include conversation history
+    // Only send the most recent messages (limit to last 10 to avoid token limits)
+    const apiMessages = conversation.messages
+      .slice(-10)
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+    
+    // Add customer persona context if specified
+    let enhancedPrompt = prompt;
+    if (customerType && customerType !== 'general') {
+      const persona = customerPersonas.find(p => p.type === customerType);
+      if (persona) {
+        enhancedPrompt = `I'm helping a customer who is ${persona.description}. They typically need ${persona.needs}. Here's my question: ${prompt}`;
+      }
+    }
+    
+    // Get response from Claude with conversation history
+    const claudePrompt = apiMessages.length > 1 
+      ? apiMessages  // Use conversation history
+      : enhancedPrompt;  // Use the enhanced prompt for first message
+    
+    const response = await askClaude(
+      claudePrompt, 
+      conversation.id
+    );
+    
+    // Add assistant response to conversation
+    conversation.messages.push({
+      role: 'assistant',
+      content: response,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Update conversation timestamp
+    conversation.updatedAt = new Date().toISOString();
+    
+    // Track the customer type with the conversation if provided
+    if (customerType && !conversation.customerType) {
+      conversation.customerType = customerType;
+    }
+    
+    res.json({ 
+      response,
+      conversation: {
+        id: conversation.id,
+        messages: conversation.messages,
+        customerType: conversation.customerType
+      }
+    });
+  } catch (error) {
+    logger.error('Assistant API error', error, { 
+      promptOrigin: req.get('origin'),
+      userId: req.user?._id || 'anonymous'
+    });
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// Get conversation history
+app.get('/api/assistant/conversations', async (req, res) => {
+  try {
+    const userId = req.user?._id || 'anonymous';
+    
+    // Filter conversations by user ID
+    const userConversations = Object.values(conversations)
+      .filter(conv => conv.userId === userId)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    
+    // Return stripped down version with just IDs and preview
+    const conversationPreviews = userConversations.map(conv => {
+      const lastMessage = conv.messages[conv.messages.length - 1];
+      return {
+        id: conv.id,
+        preview: lastMessage?.content.substring(0, 50) + '...' || 'Empty conversation',
+        messageCount: conv.messages.length,
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt
+      };
+    });
+    
+    res.json({ conversations: conversationPreviews });
+  } catch (error) {
+    logger.error('Error fetching conversations', error);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
+// Get specific conversation
+app.get('/api/assistant/conversations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id || 'anonymous';
+    
+    if (!conversations[id]) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    
+    // Check if user owns this conversation
+    if (conversations[id].userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    res.json({ conversation: conversations[id] });
+  } catch (error) {
+    logger.error('Error fetching conversation', error, { conversationId: req.params.id });
+    res.status(500).json({ error: 'Failed to fetch conversation' });
+  }
+});
+
+// Get suggested questions
+app.get('/api/assistant/suggested-questions', async (req, res) => {
+  try {
+    const { customerType } = req.query;
+    
+    // Base questions that apply to all customer types
+    const baseQuestions = {
+      "sales": [
+        "How can I increase my sales?",
+        "What are the best sales techniques for accessories?",
+        "How should I handle customer objections?",
+        "What's the most effective way to demo a new phone?"
+      ],
+      "commission": [
+        "How is commission calculated?",
+        "What's the commission structure for our plans?",
+        "How can I maximize my commission earnings?",
+        "What promotions offer the best commission?"
+      ],
+      "products": [
+        "What are the key differences between our plans?",
+        "How do I compare iPhone vs Android for customers?",
+        "What are the best selling accessories?",
+        "Which phones offer the best value for customers?"
+      ],
+      "customer_service": [
+        "How do I handle an unhappy customer?",
+        "What's the process for handling refunds?",
+        "How should I explain activation fees to customers?",
+        "What's the best way to convert a browsing customer to a sale?"
+      ]
+    };
+    
+    // Customer type specific questions
+    const customerTypeQuestions = {
+      "budget_conscious": [
+        "How can I explain the value in our budget phones?",
+        "What's the best way to present our affordable plans?",
+        "How do I handle customers who say our prices are too high?",
+        "What financing options should I highlight for budget customers?"
+      ],
+      "tech_enthusiast": [
+        "What cutting-edge features should I highlight in our flagship devices?",
+        "How can I impress customers who know a lot about technology?",
+        "What accessories pair best with high-end phones?",
+        "How do I position our premium plans to tech-savvy customers?"
+      ],
+      "business_user": [
+        "What features should I emphasize for business customers?",
+        "How do our business plans compare to competitors?",
+        "What security features should I highlight for business users?",
+        "How can I sell mobile hotspot features to business professionals?"
+      ],
+      "senior": [
+        "What are the best phone options for seniors with limited tech experience?",
+        "How can I explain our plans in simple terms?",
+        "What accessibility features should I highlight?",
+        "What support options can I offer to less tech-savvy customers?"
+      ],
+      "family_manager": [
+        "How do I explain the benefits of our family plans?",
+        "What parental control features should I highlight?",
+        "How can I help parents choose appropriate phones for children?",
+        "What's the best way to explain line discounts for multiple devices?"
+      ]
+    };
+    
+    // Combine base questions with customer type questions if a valid type is provided
+    let suggestedQuestions = {...baseQuestions};
+    
+    if (customerType && customerTypeQuestions[customerType]) {
+      suggestedQuestions[customerType] = customerTypeQuestions[customerType];
+    }
+    
+    res.json({ 
+      suggestedQuestions,
+      customerPersonas
+    });
+  } catch (error) {
+    logger.error('Error fetching suggested questions', error);
+    res.status(500).json({ error: 'Failed to fetch suggested questions' });
+  }
+});
+
+// Serve static files if in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve frontend build files
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+  });
+}
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`API available at http://localhost:${PORT}/api`);
+  console.log(`Frontend should be running at http://localhost:5173`);
+});

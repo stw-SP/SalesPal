@@ -1,0 +1,53 @@
+
+> frontend@1.0.0 dev
+> vite
+
+
+  VITE v6.2.0  ready in 149 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+Sending Request: POST /api/auth/login
+Received Response: 200 /api/auth/login
+Sending Request: GET /api/assistant/suggested-questions
+Sending Request: GET /api/users/me
+Sending Request: GET /api/assistant/suggested-questions
+Received Response: 304 /api/assistant/suggested-questions
+Received Response: 200 /api/users/me
+Received Response: 200 /api/assistant/suggested-questions
+Sending Request: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-31
+Sending Request: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-31
+Received Response: 304 /api/commission/2?startDate=2025-03-01&endDate=2025-03-31
+Received Response: 200 /api/commission/2?startDate=2025-03-01&endDate=2025-03-31
+Sending Request: GET /api/sales/employee/2
+Sending Request: GET /api/sales/employee/2
+Received Response: 304 /api/sales/employee/2
+Received Response: 200 /api/sales/employee/2
+Sending Request: GET /api/sales/employee/2
+Received Response: 304 /api/sales/employee/2
+Sending Request: GET /api/sales/employee/2
+Received Response: 304 /api/sales/employee/2
+Sending Request: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 304 /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 200 /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 304 /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 200 /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/commission-structures
+Sending Request: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 304 /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/commission-structures
+Received Response: 304 /api/commission-structures
+Sending Request: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 200 /api/commission/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 200 /api/commission-structures
+Received Response: 304 /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Sending Request: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+Received Response: 304 /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05
+3:55:39 PM [vite] vite.config.js changed, restarting server...
+3:55:39 PM [vite] (client) page reload index.html
+3:55:39 PM [vite] server restarted.
+3:55:51 PM [vite] (client) page reload index.html

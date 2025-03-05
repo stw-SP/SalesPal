@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SalesPal Browser
+Comment=Launch SalesPal with Browser
+Exec=gnome-terminal --working-directory=/home/stw/Desktop/apps/SalesPal -- bash -c "/home/stw/Desktop/apps/SalesPal/launch-salespal-browser.sh; echo 'Press Enter to close this window'; read"
+Icon=/home/stw/Desktop/apps/SalesPal/icons/salespal.svg
+Terminal=false
+Categories=Office;Development;
+StartupNotify=true

@@ -1,0 +1,121 @@
+
+> backend@1.0.0 dev
+> nodemon server.js
+
+[33m[nodemon] 3.1.9[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server.js`[39m
+{"level":"info","timestamp":"2025-03-05T20:48:02.419Z","message":"Server starting up"}
+{"level":"info","timestamp":"2025-03-05T20:48:02.420Z","message":"Using in-memory database for demonstration"}
+Server running on port 5001
+API available at http://localhost:5001/api
+Frontend should be running at http://localhost:5173
+{"level":"info","timestamp":"2025-03-05T20:48:13.720Z","message":"Request started: POST /api/auth/login","method":"POST","url":"/api/auth/login","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.789Z","message":"Request completed: POST /api/auth/login","method":"POST","url":"/api/auth/login","statusCode":200,"duration":"69ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.816Z","message":"Request started: GET /api/assistant/suggested-questions","method":"GET","url":"/api/assistant/suggested-questions","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.817Z","message":"Request completed: GET /api/assistant/suggested-questions","method":"GET","url":"/api/assistant/suggested-questions","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.820Z","message":"Request started: GET /api/users/me","method":"GET","url":"/api/users/me","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.821Z","message":"Authenticating request","path":"/api/users/me","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDc2OTMsImV4cCI6MTc0MTgxMjQ5M30.FaWkUbqaDVkNCPU8y48Qmm2LNx6rRCJhAQ3BG_v3b7w","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/dashboard","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin"}}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.823Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.823Z","message":"Request completed: GET /api/users/me","method":"GET","url":"/api/users/me","statusCode":200,"duration":"3ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.824Z","message":"Request started: GET /api/assistant/suggested-questions","method":"GET","url":"/api/assistant/suggested-questions","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.825Z","message":"Request completed: GET /api/assistant/suggested-questions","method":"GET","url":"/api/assistant/suggested-questions","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.851Z","message":"Request started: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-31","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-31","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.852Z","message":"Commission calculation request received","employeeId":"2","startDate":"2025-03-01","endDate":"2025-03-31"}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.852Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.852Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.852Z","message":"Request completed: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-31","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-31","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.855Z","message":"Request started: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-31","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-31","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.856Z","message":"Commission calculation request received","employeeId":"2","startDate":"2025-03-01","endDate":"2025-03-31"}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.856Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.856Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.856Z","message":"Request completed: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-31","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-31","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.860Z","message":"Request started: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.860Z","message":"Request completed: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","statusCode":200,"duration":"0ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.862Z","message":"Request started: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.862Z","message":"Request completed: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","statusCode":200,"duration":"0ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.947Z","message":"Request started: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.948Z","message":"Request completed: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.960Z","message":"Request started: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:13.960Z","message":"Request completed: GET /api/sales/employee/2","method":"GET","url":"/api/sales/employee/2","statusCode":200,"duration":"0ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.628Z","message":"Request started: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.629Z","message":"Commission calculation request received","employeeId":"2","startDate":"2025-03-01","endDate":"2025-03-05"}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.630Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.630Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.631Z","message":"Request completed: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"3ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.634Z","message":"Request started: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.635Z","message":"Commission calculation request received","employeeId":"2","startDate":"2025-03-01","endDate":"2025-03-05"}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.635Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.636Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.636Z","message":"Request completed: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"2ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.645Z","message":"Request started: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.646Z","message":"Request completed: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.649Z","message":"Request started: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:16.650Z","message":"Request completed: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.367Z","message":"Request started: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.367Z","message":"Commission calculation request received","employeeId":"2","startDate":"2025-03-01","endDate":"2025-03-05"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.368Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.368Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.368Z","message":"Request completed: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.370Z","message":"Request started: GET /api/commission-structures","method":"GET","url":"/api/commission-structures","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.370Z","message":"Authenticating request","path":"/api/commission-structures","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDc2OTMsImV4cCI6MTc0MTgxMjQ5M30.FaWkUbqaDVkNCPU8y48Qmm2LNx6rRCJhAQ3BG_v3b7w","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/commission/calculator","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin","if-none-match":"W/\"9e2-Q3bF6Q2t8HwRBei6rjWD6sf2aVo\""}}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.372Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.373Z","message":"Request completed: GET /api/commission-structures","method":"GET","url":"/api/commission-structures","statusCode":200,"duration":"3ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.375Z","message":"Request started: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.375Z","message":"Commission calculation request received","employeeId":"2","startDate":"2025-03-01","endDate":"2025-03-05"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.375Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.375Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.376Z","message":"Request completed: GET /api/commission/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/commission/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.377Z","message":"Request started: GET /api/commission-structures","method":"GET","url":"/api/commission-structures","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.378Z","message":"Authenticating request","path":"/api/commission-structures","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDc2OTMsImV4cCI6MTc0MTgxMjQ5M30.FaWkUbqaDVkNCPU8y48Qmm2LNx6rRCJhAQ3BG_v3b7w","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/commission/calculator","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin"}}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.379Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.379Z","message":"Request completed: GET /api/commission-structures","method":"GET","url":"/api/commission-structures","statusCode":200,"duration":"2ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.382Z","message":"Request started: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.382Z","message":"Request completed: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.407Z","message":"Request started: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"info","timestamp":"2025-03-05T20:48:19.408Z","message":"Request completed: GET /api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","method":"GET","url":"/api/sales/employee/2?startDate=2025-03-01&endDate=2025-03-05","statusCode":200,"duration":"1ms"}
+{"level":"info","timestamp":"2025-03-05T20:48:27.014Z","message":"Request started: POST /api/sales/upload","method":"POST","url":"/api/sales/upload","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.022Z","message":"Starting file upload processing"}
+{"level":"info","timestamp":"2025-03-05T20:48:27.023Z","message":"File received for processing","filename":"ABO - 1.8.516.pdf","mimetype":"application/pdf","size":162871,"savedPath":"/home/stw/Desktop/apps/SalesPal/uploads/1741207707018-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.023Z","message":"Processing PDF file with improved parser","filePath":"/home/stw/Desktop/apps/SalesPal/uploads/1741207707018-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.023Z","message":"Starting improved PDF parsing","filePath":"/home/stw/Desktop/apps/SalesPal/uploads/1741207707018-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.199Z","message":"PDF parsing successful","textLength":2507,"pages":2}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.199Z","message":"PDF processing complete","textLength":2507,"previewText":"Sale R12402593417523942 117: Spring Hil 4381 Comercial Way, Spring Hil, FL 34606 \nCustomer\n KAREN RO..."}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.199Z","message":"Starting sale information extraction using Claude"}
+{"level":"info","timestamp":"2025-03-05T20:48:27.200Z","message":"Trying improved regex parser with bolded header detection"}
+INFO: Extracting sale info from text with length: 2507 {}
+Extracting sale info from text with length: 2507
+Extraction complete with improved parser { customerName: '', productsFound: 0, totalAmount: 1.27 }
+INFO: Extraction complete with enhanced parser { customerName: '', productsFound: 0, totalAmount: 1.27 }
+{"level":"info","timestamp":"2025-03-05T20:48:27.257Z","message":"Enhanced parser did not produce good results, falling back to Claude"}
+{"level":"info","timestamp":"2025-03-05T20:48:27.257Z","message":"Sending request to Claude API","promptType":"single message","promptLength":3767,"conversationId":null}
+{"level":"error","timestamp":"2025-03-05T20:48:27.479Z","message":"Claude API error","errorMessage":"Request failed with status code 429","stack":"AxiosError: Request failed with status code 429\n    at settle (/home/stw/Desktop/apps/SalesPal/backend/node_modules/axios/dist/node/axios.cjs:2031:12)\n    at IncomingMessage.handleStreamEnd (/home/stw/Desktop/apps/SalesPal/backend/node_modules/axios/dist/node/axios.cjs:3148:11)\n    at IncomingMessage.emit (node:events:530:35)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n    at Axios.request (/home/stw/Desktop/apps/SalesPal/backend/node_modules/axios/dist/node/axios.cjs:4258:41)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async askClaude (/home/stw/Desktop/apps/SalesPal/backend/server.js:2551:22)\n    at async extractSaleInfoWithClaude (/home/stw/Desktop/apps/SalesPal/backend/server.js:721:22)\n    at async /home/stw/Desktop/apps/SalesPal/backend/server.js:961:39","promptType":"single message","conversationId":null}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.480Z","message":"Claude receipt parsing response received","responseLength":153,"preview":"I'm sorry, but I'm having trouble connecting to th"}
+{"level":"info","timestamp":"2025-03-05T20:48:27.480Z","message":"Claude parsing failed, using regex extraction results"}
+INFO: Extracting sale info from text with length: 2507 {}
+Extracting sale info from text with length: 2507
+Extraction complete with improved parser { customerName: '', productsFound: 0, totalAmount: 1.27 }
+INFO: Extraction complete with enhanced parser { customerName: '', productsFound: 0, totalAmount: 1.27 }
+{"level":"info","timestamp":"2025-03-05T20:48:27.534Z","message":"Successfully extracted sale info with Claude"}
+{"level":"warn","timestamp":"2025-03-05T20:48:27.534Z","message":"No products in extracted info, using default","saleInfo":{"customerName":"","phoneNumber":"","products":[],"totalAmount":1.27,"date":"2023-10-04T04:00:00.000Z","storeLocation":"","orderNumber":""}}
+{"level":"info","timestamp":"2025-03-05T20:48:27.535Z","message":"File processing complete","filename":"ABO - 1.8.516.pdf","confidence":{"overall":"medium","customerName":"low","phoneNumber":"low","products":"low","totalAmount":"high","date":"high","storeLocation":"low","salesperson":"low"},"hasCustomerName":false,"productsFound":1}
+{"level":"info","timestamp":"2025-03-05T20:48:27.535Z","message":"Request completed: POST /api/sales/upload","method":"POST","url":"/api/sales/upload","statusCode":200,"duration":"521ms"}
+/home/stw/Desktop/apps/SalesPal/backend/server.js:1070
+      if (error && filePath && fs.existsSync(filePath)) {
+      ^
+
+ReferenceError: error is not defined
+    at /home/stw/Desktop/apps/SalesPal/backend/server.js:1070:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+Node.js v22.14.0
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting child process[39m
+[32m[nodemon] starting `node server.js`[39m
+{"level":"info","timestamp":"2025-03-05T21:04:23.464Z","message":"Server starting up"}
+{"level":"info","timestamp":"2025-03-05T21:04:23.465Z","message":"Using in-memory database for demonstration"}
+Server running on port 5001
+API available at http://localhost:5001/api
+Frontend should be running at http://localhost:5173

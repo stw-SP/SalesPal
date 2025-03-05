@@ -1,0 +1,44 @@
+{"level":"debug","timestamp":"2025-03-05T19:27:37.456Z","message":"Authenticating request","path":"/api/users/me","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDI4NTcsImV4cCI6MTc0MTgwNzY1N30.PWOwowLmPMQ-yzn7u12tQKFZIVE7kLsOvi5kAdEjhBI","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/dashboard","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin"}}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.459Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.487Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.487Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.491Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.491Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.509Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T19:27:37.510Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T19:27:39.131Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T19:27:39.131Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T19:27:39.134Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T19:27:39.134Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T19:27:47.655Z","message":"Starting file upload processing"}
+{"level":"debug","timestamp":"2025-03-05T19:27:47.655Z","message":"Processing PDF file with improved parser","filePath":"/home/stw/Desktop/apps/SalesPal/uploads/1741202867651-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T19:27:47.655Z","message":"Starting improved PDF parsing","filePath":"/home/stw/Desktop/apps/SalesPal/uploads/1741202867651-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T19:27:47.828Z","message":"PDF parsing successful","textLength":2507,"pages":2}
+{"level":"debug","timestamp":"2025-03-05T19:27:47.828Z","message":"PDF processing complete","textLength":2507,"previewText":"Sale R12402593417523942 117: Spring Hil 4381 Comercial Way, Spring Hil, FL 34606 \nCustomer\n KAREN RO..."}
+{"level":"debug","timestamp":"2025-03-05T19:27:47.828Z","message":"Starting sale information extraction using Claude"}
+{"level":"debug","timestamp":"2025-03-05T19:27:48.157Z","message":"Claude receipt parsing response received","responseLength":153,"preview":"I'm sorry, but I'm having trouble connecting to th"}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.821Z","message":"Authenticating request","path":"/api/users/me","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDc2OTMsImV4cCI6MTc0MTgxMjQ5M30.FaWkUbqaDVkNCPU8y48Qmm2LNx6rRCJhAQ3BG_v3b7w","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/dashboard","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin"}}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.823Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.852Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.852Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.856Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:13.856Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-31T03:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.630Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.630Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.635Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:16.636Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.368Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.368Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.370Z","message":"Authenticating request","path":"/api/commission-structures","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDc2OTMsImV4cCI6MTc0MTgxMjQ5M30.FaWkUbqaDVkNCPU8y48Qmm2LNx6rRCJhAQ3BG_v3b7w","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/commission/calculator","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin","if-none-match":"W/\"9e2-Q3bF6Q2t8HwRBei6rjWD6sf2aVo\""}}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.372Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.375Z","message":"Found sales for employee","count":0}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.375Z","message":"Sales after date filtering","count":0,"startDate":"2025-03-01T00:00:00.000Z","endDate":"2025-03-05T04:59:59.999Z"}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.378Z","message":"Authenticating request","path":"/api/commission-structures","headers":{"authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIiLCJpYXQiOjE3NDEyMDc2OTMsImV4cCI6MTc0MTgxMjQ5M30.FaWkUbqaDVkNCPU8y48Qmm2LNx6rRCJhAQ3BG_v3b7w","host":"localhost:5001","user-agent":"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0","accept":"application/json, text/plain, */*","accept-language":"en-US,en;q=0.5","accept-encoding":"gzip, deflate, br, zstd","connection":"close","referer":"http://localhost:5173/commission/calculator","sec-fetch-dest":"empty","sec-fetch-mode":"cors","sec-fetch-site":"same-origin"}}
+{"level":"debug","timestamp":"2025-03-05T20:48:19.379Z","message":"Authentication successful","userId":"2","role":"admin"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.022Z","message":"Starting file upload processing"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.023Z","message":"Processing PDF file with improved parser","filePath":"/home/stw/Desktop/apps/SalesPal/uploads/1741207707018-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.023Z","message":"Starting improved PDF parsing","filePath":"/home/stw/Desktop/apps/SalesPal/uploads/1741207707018-ABO - 1.8.516.pdf"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.199Z","message":"PDF parsing successful","textLength":2507,"pages":2}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.199Z","message":"PDF processing complete","textLength":2507,"previewText":"Sale R12402593417523942 117: Spring Hil 4381 Comercial Way, Spring Hil, FL 34606 \nCustomer\n KAREN RO..."}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.199Z","message":"Starting sale information extraction using Claude"}
+{"level":"debug","timestamp":"2025-03-05T20:48:27.480Z","message":"Claude receipt parsing response received","responseLength":153,"preview":"I'm sorry, but I'm having trouble connecting to th"}
